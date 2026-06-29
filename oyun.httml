@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mobil Çiftlik Oyunu</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2e5c1e;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        #info-panel {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        #game-zone {
+            position: relative;
+            width: 95vw;
+            height: 65vh;
+            max-width: 500px;
+            background-color: #5c9e32;
+            border: 4px solid #3d2414;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        .object {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%);
+            transition: all 0.2s;
+        }
+        #inventory {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+            padding: 0 10px;
+        }
+        .slot {
+            width: 65px;
+            height: 65px;
+            background-color: #d1a153;
+            border: 3px solid #5c3a21;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .slot.active {
+            border-color: #ffeb3b;
+            background-color: #e5b869;
+            transform: scale(1.05);
+        }
+        .slot-name {
+            font-size: 10px;
+            color: #3d2414;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+        #status-msg {
+            color: #ffeb3b;
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+            font-weight: bold;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info-panel">
+        <div>🪓 Odun: <span id="wood-count">0</span></div>
+        <div>💎 Taş: <span id="stone-count">0</span></div>
+        <div>🌾 Mahsul: <span id="crop-count">0</span></div>
+    </div>
+
+    <div id="status-msg">Alet seç ve ekrandaki nesnelere dokun!</div>
+
+    <div id="game-zone" id="gameZone">
+        <!-- Nesneler JavaScript ile buraya eklenecek -->
+    </div>
+
+    <div id="inventory">
+        <div class="slot active" onclick="selectTool('balta', this)">
+            🪓<div class="slot-name">Balta</div>
+        </div>
+        <div class="slot" onclick="selectTool('kazma', this)">
+            ⛏️<div class="slot-name">Kazma</div>
+        </div>
+        <div class="slot" onclick="selectTool('tohum', this)">
+            🌱<div class="slot-name">Tohum</div>
+        </div>
+        <div class="slot" onclick="selectTool('tapan', this)">
+            🧺<div class="slot-name">Topla</div>
+        </div>
+    </div>
+
+    <script>
+        const gameZone = document.getElementById('game-zone');
+        let currentTool = 'balta';
+        
+        // Kaynaklar
+        let resources = { wood: 0, stone: 0, crops: 0 };
+
+        // Ekrandaki nesneleri takip etmek için dizi
+        let gameObjects = [
+            { id: 1, type: 'tree', x: 25, y: 30, state: 'ready', emoji: '🌲' },
+            { id: 2, type: 'tree', x: 75, y: 25, state: 'ready', emoji: '🌲' },
+            { id: 3, type: 'rock', x: 30, y: 70, state: 'ready', emoji: '🪨' },
+            { id: 4, type: 'rock', x: 80, y: 75, state: 'ready', emoji: '🪨' },
+            { id: 5, type: 'soil', x: 50, y: 50, state: 'empty', emoji: '🟫' }
+        ];
+
+        function updateUI() {
+            document.getElementById('wood-count').innerText = resources.wood;
+            document.getElementById('stone-count').innerText = resources.stone;
+            document.getElementById('crop-count').innerText = resources.crops;
+        }
+
+        function selectTool(tool, element) {
+            currentTool = tool;
+            document.querySelectorAll('.slot').forEach(slot => slot.classList.remove('active'));
+            element.classList.add('active');
+            
+            const msgs = {
+                balta: "Balta seçildi: Ağaçları kesebilirsin! 🌲",
+                kazma: "Kazma seçildi: Kayaları kırabilirsin! 🪨",
+                tohum: "Tohum seçildi: Boş toprağa ekebilirsin! 🟫",
+                tapan: "Topla seçildi: Büyüyen ekinleri hasat et! 🌾"
+            };
+            document.getElementById('status-msg').innerText = msgs[tool];
+        }
+
+        function renderObjects() {
+            gameZone.innerHTML = '';
+            gameObjects.forEach(obj => {
+                const div = document.createElement('div');
+                div.className = 'object';
+                div.style.left = obj.x + '%';
+                div.style.top = obj.y + '%';
+                div.innerText = obj.emoji;
+                
+                // Dokunma / Tıklama olayı
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    handleObjectInteraction(obj);
+                };
+                
+                gameZone.appendChild(div);
+            });
+        }
+
+        function handleObjectInteraction(obj) {
+            const msgBox = document.getElementById('status-msg');
+            
+            // 1. AĞAÇ KESME
+            if (obj.type === 'tree' && currentTool === 'balta') {
+                resources.wood += 5;
+                msgBox.innerText = "+5 Odun kazandın! 🪓";
+                // Ağacı geçici olarak yok et, sonra geri çıkar
+                obj.emoji = '🌱'; 
+                obj.type = 'stump';
+                renderObjects();
+                setTimeout(() => {
+                    obj.emoji = '🌲';
+                    obj.type = 'tree';
+                    renderObjects();
+                }, 4000);
+            } 
+            // 2. TAŞ KIRMA
+            else if (obj.type === 'rock' && currentTool === 'kazma') {
+                resources.stone += 3;
+                msgBox.innerText = "+3 Taş kazandın! ⛏️";
+                obj.emoji = '✨';
+                obj.type = 'broken';
+                renderObjects();
+                setTimeout(() => {
+                    obj.emoji = '🪨';
+                    obj.type = 'rock';
+                    renderObjects();
+                }, 5000);
+            } 
+            // 3. TOHUM EKME
+            else if (obj.type === 'soil' && obj.state === 'empty' && currentTool === 'tohum') {
+                obj.state = 'growing';
+                obj.emoji = '🌿';
+                msgBox.innerText = "Tohum ekildi, büyüyor... ⏳";
+                renderObjects();
+                
+                // 3 saniye sonra büyüsün
+                setTimeout(() => {
+                    if (obj.state === 'growing') {
+                        obj.state = 'ready';
+                        obj.emoji = '🌾';
+                        msgBox.innerText = "Ekin büyüdü! Sepetle topla! 🌾";
+                        renderObjects();
+                    }
+                }, 3000);
+            } 
+            // 4. HASAT ETME (BİÇME)
+            else if (obj.type === 'soil' && obj.state === 'ready' && currentTool === 'tapan') {
+                resources.crops += 1;
+                obj.state = 'empty';
+                obj.emoji = '🟫';
+                msgBox.innerText = "+1 Mahsul hasat edildi! 🧺";
+                renderObjects();
+            } 
+            // Yanlış alet uyarısı
+            else {
+                msgBox.innerText = "Bu nesne için doğru aleti seçmelisin!";
+            }
+            
+            updateUI();
+        }
+
+        // Oyunu başlat
+        renderObjects();
+        updateUI();
+    </script>
+</body>
+</html>
+html
